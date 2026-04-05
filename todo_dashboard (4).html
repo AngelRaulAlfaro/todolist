@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TASK.OS — Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef0f4;
+    --surface: #ffffff;
+    --border: #e0e4ec;
+    --border-mid: #c8cfe0;
+    --text: #0f1623;
+    --text-mid: #4a5568;
+    --text-dim: #94a3b8;
+    --blue: #1557f0;
+    --blue-glow: rgba(21,87,240,0.1);
+    --green: #059669;
+    --purple: #7c3aed;
+    --orange: #d97706;
+    --red: #dc2626;
+    --slate: #475569;
+    --shadow-sm: 0 1px 3px rgba(15,22,35,0.06), 0 3px 10px rgba(15,22,35,0.04);
+    --shadow-md: 0 2px 8px rgba(15,22,35,0.08), 0 6px 20px rgba(15,22,35,0.05);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 0 24px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 100;
+  }
+
+  .logo-wrap { display: flex; align-items: baseline; gap: 10px; }
+  .logo-text {
+    font-size: 1.3rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, #1557f0 0%, #3b82f6 60%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text-dim);
+    letter-spacing: 0.16em;
+  }
+  .clock {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  /* ── DASHBOARD ── */
+  .dashboard {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 20px;
+    overflow: hidden;
+    align-items: start;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  /* thin scrollbar */
+  .col::-webkit-scrollbar { width: 3px; }
+  .col::-webkit-scrollbar-track { background: transparent; }
+  .col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+  .col-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    padding: 0 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: box-shadow 0.2s;
+  }
+  .card:hover { box-shadow: var(--shadow-md); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 7px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .card-header::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 7px; bottom: 7px;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+  }
+  .card.c-green  .card-header::before { background: var(--green); }
+  .card.c-blue   .card-header::before { background: var(--blue); }
+  .card.c-purple .card-header::before { background: var(--purple); }
+  .card.c-orange .card-header::before { background: var(--orange); }
+  .card.c-red    .card-header::before { background: var(--red); }
+  .card.c-slate  .card-header::before { background: var(--slate); }
+
+  .card-title-wrap { display: flex; align-items: baseline; gap: 7px; }
+  .card-label {
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .card.c-green  .card-label { color: var(--green); }
+  .card.c-blue   .card-label { color: var(--blue); }
+  .card.c-purple .card-label { color: var(--purple); }
+  .card.c-orange .card-label { color: var(--orange); }
+  .card.c-red    .card-label { color: var(--red); }
+  .card.c-slate  .card-label { color: var(--slate); }
+
+  .card-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+  .card-right { display: flex; align-items: center; gap: 6px; }
+  .task-count {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1px 7px;
+  }
+
+  .btn-add {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    padding: 3px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.13s;
+    border: 1px solid var(--border-mid);
+    background: var(--bg);
+    color: var(--text-mid);
+  }
+  .btn-add:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .card-body { padding: 6px 10px 8px; }
+
+  /* ── ADD FORM ── */
+  .add-form {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    padding: 5px 8px;
+    background: var(--bg);
+    border: 1px dashed var(--border-mid);
+    border-radius: 7px;
+  }
+  .add-form.open { display: flex; }
+  .add-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: var(--text);
+    caret-color: var(--blue);
+  }
+  .add-input::placeholder { color: var(--text-dim); }
+  .btn-ok {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    padding: 3px 9px;
+    border-radius: 5px;
+    border: none;
+    background: var(--blue);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.13s;
+  }
+  .btn-ok:hover { opacity: 0.85; }
+  .btn-x {
+    font-size: 0.6rem;
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--border-mid);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.13s;
+  }
+  .btn-x:hover { color: var(--red); border-color: var(--red); }
+
+  /* ── TASK LIST ── */
+  .task-list { display: flex; flex-direction: column; gap: 1px; }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.13s;
+  }
+  .task-item:hover { background: var(--bg); border-color: var(--border); }
+  .task-item.completed { opacity: 0.42; }
+  .task-item.completed .task-text { text-decoration: line-through; color: var(--text-dim); }
+  .task-item.archived { opacity: 0.28; }
+
+  .chk {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border-mid);
+    border-radius: 3px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.13s;
+    background: #fff;
+  }
+  .chk:hover { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-glow); }
+  .chk.checked::after { content: '✓'; font-size: 0.52rem; color: #fff; line-height: 1; font-weight: 700; }
+  .chk.checked.ck-green  { background: var(--green);  border-color: var(--green); }
+  .chk.checked.ck-blue   { background: var(--blue);   border-color: var(--blue); }
+  .chk.checked.ck-purple { background: var(--purple); border-color: var(--purple); }
+  .chk.checked.ck-orange { background: var(--orange); border-color: var(--orange); }
+  .chk.checked.ck-red    { background: var(--red);    border-color: var(--red); }
+  .chk.checked.ck-slate  { background: var(--slate);  border-color: var(--slate); }
+
+  .task-text { flex: 1; font-size: 0.75rem; color: var(--text); line-height: 1.2; }
+  .task-meta { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .done-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.52rem;
+    color: var(--green);
+    background: rgba(5,150,105,0.07);
+    border: 1px solid rgba(5,150,105,0.18);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .task-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.13s; }
+  .task-item:hover .task-actions { opacity: 1; }
+  .ico {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.58rem;
+    color: var(--text-dim);
+    transition: all 0.12s;
+  }
+  .ico:hover         { background: var(--bg); border-color: var(--border-mid); color: var(--text); }
+  .ico.arch:hover    { color: var(--orange); border-color: var(--orange); }
+  .ico.del:hover     { color: var(--red);    border-color: var(--red); }
+  .ico.restore:hover { color: var(--blue);   border-color: var(--blue); }
+
+  .empty {
+    padding: 8px 0 4px;
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── ARCHIVE TOGGLE ── */
+  .arch-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.53rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border);
+    user-select: none;
+    transition: color 0.13s;
+  }
+  .arch-toggle:hover { color: var(--text-mid); }
+  .arch-toggle .arr { transition: transform 0.16s; display: inline-block; font-size: 0.42rem; }
+  .arch-toggle.open .arr { transform: rotate(90deg); }
+  .arch-list { display: none; margin-top: 4px; flex-direction: column; gap: 1px; }
+  .arch-list.open { display: flex; }
+
+  /* ── SUBDIVISION ── */
+  .subdivision {
+    margin-bottom: 5px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .subdivision:last-child { margin-bottom: 0; }
+
+  .subdiv-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 9px;
+    background: var(--bg);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.13s;
+  }
+  .subdiv-header:hover { background: #e3e7ef; }
+
+  .subdiv-title-row { display: flex; align-items: center; gap: 6px; }
+  .subdiv-arrow {
+    font-size: 0.42rem;
+    color: var(--text-dim);
+    transition: transform 0.16s;
+    display: inline-block;
+  }
+  .subdivision.open .subdiv-arrow { transform: rotate(90deg); }
+
+  .subdiv-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--text-mid);
+    text-transform: uppercase;
+  }
+  .subdiv-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.52rem;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1px 6px;
+  }
+
+  .btn-add-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.52rem;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px solid var(--border-mid);
+    background: var(--surface);
+    color: var(--text-dim);
+    transition: all 0.13s;
+  }
+  .btn-add-sub:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .subdiv-body { display: none; padding: 5px 8px 7px; }
+  .subdivision.open .subdiv-body { display: block; }
+
+  .subdiv-add-form {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 5px;
+    padding: 4px 8px;
+    background: var(--bg);
+    border: 1px dashed var(--border-mid);
+    border-radius: 6px;
+  }
+  .subdiv-add-form.open { display: flex; }
+
+  /* ── PRIORITY MODE ── */
+  .btn-edit-priority {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    padding: 3px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.13s;
+    border: 1px solid var(--border-mid);
+    background: var(--bg);
+    color: var(--text-mid);
+  }
+  .btn-edit-priority:hover { background: var(--slate); color: #fff; border-color: var(--slate); }
+  .btn-edit-priority.active { background: var(--slate); color: #fff; border-color: var(--slate); }
+
+  .priority-input {
+    width: 36px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    text-align: center;
+    border: 1px solid var(--border-mid);
+    border-radius: 4px;
+    padding: 2px 4px;
+    color: var(--slate);
+    background: var(--bg);
+    outline: none;
+    flex-shrink: 0;
+    display: none;
+  }
+  .priority-input:focus { border-color: var(--slate); box-shadow: 0 0 0 2px rgba(71,85,105,0.1); }
+  body.priority-mode .priority-input { display: block; }
+
+  /* task name editable input (priority/edit mode) */
+  .task-name-input {
+    flex: 1;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-mid);
+    border-radius: 5px;
+    padding: 2px 7px;
+    outline: none;
+    display: none;
+    min-width: 0;
+  }
+  .task-name-input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-glow); }
+  body.priority-mode .task-name-input { display: block; }
+  body.priority-mode .task-text { display: none; }
+
+  /* ── HEADER ACTIONS ── */
+  .header-actions { display: flex; align-items: center; gap: 6px; }
+
+  .btn-header {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    padding: 4px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.13s;
+    border: 1px solid var(--border-mid);
+    background: var(--bg);
+    color: var(--text-mid);
+  }
+  .btn-header:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  .sync-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 5px;
+    transition: all 0.3s;
+  }
+  .sync-status.ok   { color: var(--green); background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.2); }
+  .sync-status.err  { color: var(--red);   background: rgba(220,38,38,0.07); border: 1px solid rgba(220,38,38,0.2); }
+
+  /* ── ARCHIVED ITEM EXTRAS (oneoff) ── */
+  .arch-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.5rem;
+    color: var(--slate);
+    background: rgba(71,85,105,0.07);
+    border: 1px solid rgba(71,85,105,0.18);
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .arch-comment-wrap {
+    width: 100%;
+    margin-top: 3px;
+    padding-left: 21px;
+  }
+
+  .arch-comment-input {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.68rem;
+    color: var(--text-mid);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 3px 7px;
+    outline: none;
+    resize: none;
+    height: 26px;
+    overflow: hidden;
+    transition: border-color 0.13s, height 0.15s;
+    line-height: 1.4;
+  }
+  .arch-comment-input::placeholder { color: var(--text-dim); font-style: italic; }
+  .arch-comment-input:focus { border-color: var(--slate); height: 48px; }
+
+  .task-item.archived { opacity: 0.55; flex-wrap: wrap; }
+
+  /* ── RESET BUTTON ── */
+  .btn-reset {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.52rem;
+    letter-spacing: 0.07em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.13s;
+    border: 1px solid var(--border-mid);
+    background: var(--bg);
+    color: var(--text-dim);
+  }
+  .btn-reset:hover { background: var(--green); color: #fff; border-color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay" style="
+  display:flex; position:fixed; inset:0; z-index:999;
+  background:rgba(238,240,244,0.97);
+  align-items:center; justify-content:center;
+  flex-direction:column; gap:16px;
+">
+  <div style="font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#1557f0,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.03em;">Task.OS</div>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:#94a3b8;letter-spacing:0.15em;margin-top:-10px;">MISSION CONTROL</div>
+  <button id="login-btn" style="
+    margin-top:12px;
+    display:flex;align-items:center;gap:10px;
+    font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:600;
+    padding:10px 22px;border-radius:10px;
+    border:1.5px solid #e0e4ec;background:#fff;
+    cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    transition:box-shadow 0.15s;
+  ">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Sign in with Google
+  </button>
+  <div style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:#94a3b8;letter-spacing:0.08em;">Your data is private and secure</div>
+</div>
+
+<header>
+  <div class="logo-wrap">
+    <div class="logo-text">Task.OS</div>
+    <div class="logo-sub">Mission Control</div>
+  </div>
+  <div class="header-actions">
+    <span class="sync-status" id="sync-status"></span>
+    <button class="btn-header" onclick="exportData()" title="Export your tasks as a backup file">⬇ Export</button>
+    <button class="btn-header" onclick="document.getElementById('import-file').click()" title="Import a previously exported backup">⬆ Import</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    <div id="user-info" style="display:flex;align-items:center;gap:7px;margin-left:4px;">
+      <img id="user-avatar" style="width:24px;height:24px;border-radius:50%;display:none;border:1.5px solid #e0e4ec;" src="" alt="">
+      <button class="btn-header" id="signout-btn" style="display:none;" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+  <div class="clock" id="clock"></div>
+</header>
+
+<div class="dashboard">
+
+  <!-- LEFT COLUMN -->
+  <div class="col">
+    <div class="col-label">Recurring — Short Horizon</div>
+
+    <!-- DAILY -->
+    <div class="card c-green">
+      <div class="card-header">
+        <div class="card-title-wrap">
+          <span class="card-label">Daily</span>
+          <span class="card-sub">Every Day</span>
+        </div>
+        <div class="card-right">
+          <span class="task-count" id="count-daily">0</span>
+          <button class="btn-reset" onclick="resetType('daily')">↺ Reset</button>
+          <button class="btn-add" onclick="openAdd('daily')">+ Add</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="add-form" id="add-daily">
+          <input class="add-input" id="input-daily" placeholder="New task…" onkeydown="onKey(event,'daily')">
+          <button class="btn-ok" onclick="addTask('daily')">ADD</button>
+          <button class="btn-x" onclick="closeAdd('daily')">✕</button>
+        </div>
+        <div class="task-list" id="list-daily"></div>
+      </div>
+    </div>
+
+    <!-- WEEKLY -->
+    <div class="card c-blue">
+      <div class="card-header">
+        <div class="card-title-wrap">
+          <span class="card-label">Weekly</span>
+          <span class="card-sub">Every Week</span>
+        </div>
+        <div class="card-right">
+          <span class="task-count" id="count-weekly">0</span>
+          <button class="btn-reset" onclick="resetWeekly()">↺ Reset</button>
+        </div>
+      </div>
+      <div class="card-body" id="weekly-body"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="col">
+    <div class="col-label">One-off &amp; Long Horizon</div>
+
+    <!-- NON-RECURRING -->
+    <div class="card c-slate">
+      <div class="card-header">
+        <div class="card-title-wrap">
+          <span class="card-label">Non-Recurring</span>
+          <span class="card-sub">One-off</span>
+        </div>
+        <div class="card-right">
+          <span class="task-count" id="count-oneoff">0</span>
+          <button class="btn-edit-priority" id="btn-priority-toggle" onclick="togglePriorityMode()">✎ Edit</button>
+          <button class="btn-add" onclick="openAdd('oneoff')">+ Add</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="add-form" id="add-oneoff">
+          <input class="add-input" id="input-oneoff" placeholder="New task…" onkeydown="onKey(event,'oneoff')">
+          <button class="btn-ok" onclick="addTask('oneoff')">ADD</button>
+          <button class="btn-x" onclick="closeAdd('oneoff')">✕</button>
+        </div>
+        <div class="task-list" id="list-oneoff"></div>
+        <div class="arch-toggle" id="arch-tog-oneoff" onclick="toggleArch('oneoff')">
+          <span class="arr">▶</span>&nbsp;Archived&nbsp;<span id="arch-count-oneoff">0</span>
+        </div>
+        <div class="arch-list" id="arch-list-oneoff"></div>
+      </div>
+    </div>
+
+    <!-- MONTHLY -->
+    <div class="card c-purple">
+      <div class="card-header">
+        <div class="card-title-wrap">
+          <span class="card-label">Monthly</span>
+          <span class="card-sub">Every Month</span>
+        </div>
+        <div class="card-right">
+          <span class="task-count" id="count-monthly">0</span>
+          <button class="btn-add" onclick="openAdd('monthly')">+ Add</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="add-form" id="add-monthly">
+          <input class="add-input" id="input-monthly" placeholder="New task…" onkeydown="onKey(event,'monthly')">
+          <button class="btn-ok" onclick="addTask('monthly')">ADD</button>
+          <button class="btn-x" onclick="closeAdd('monthly')">✕</button>
+        </div>
+        <div class="task-list" id="list-monthly"></div>
+        <div class="arch-toggle" id="arch-tog-monthly" onclick="toggleArch('monthly')">
+          <span class="arr">▶</span>&nbsp;Archived&nbsp;<span id="arch-count-monthly">0</span>
+        </div>
+        <div class="arch-list" id="arch-list-monthly"></div>
+      </div>
+    </div>
+
+    <!-- QUARTERLY -->
+    <div class="card c-orange">
+      <div class="card-header">
+        <div class="card-title-wrap">
+          <span class="card-label">Quarterly</span>
+          <span class="card-sub">Every Quarter</span>
+        </div>
+        <div class="card-right">
+          <span class="task-count" id="count-quarterly">0</span>
+          <button class="btn-add" onclick="openAdd('quarterly')">+ Add</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="add-form" id="add-quarterly">
+          <input class="add-input" id="input-quarterly" placeholder="New task…" onkeydown="onKey(event,'quarterly')">
+          <button class="btn-ok" onclick="addTask('quarterly')">ADD</button>
+          <button class="btn-x" onclick="closeAdd('quarterly')">✕</button>
+        </div>
+        <div class="task-list" id="list-quarterly"></div>
+        <div class="arch-toggle" id="arch-tog-quarterly" onclick="toggleArch('quarterly')">
+          <span class="arr">▶</span>&nbsp;Archived&nbsp;<span id="arch-count-quarterly">0</span>
+        </div>
+        <div class="arch-list" id="arch-list-quarterly"></div>
+      </div>
+    </div>
+
+    <!-- YEARLY -->
+    <div class="card c-red">
+      <div class="card-header">
+        <div class="card-title-wrap">
+          <span class="card-label">Yearly</span>
+          <span class="card-sub">Every Year</span>
+        </div>
+        <div class="card-right">
+          <span class="task-count" id="count-yearly">0</span>
+          <button class="btn-add" onclick="openAdd('yearly')">+ Add</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="add-form" id="add-yearly">
+          <input class="add-input" id="input-yearly" placeholder="New task…" onkeydown="onKey(event,'yearly')">
+          <button class="btn-ok" onclick="addTask('yearly')">ADD</button>
+          <button class="btn-x" onclick="closeAdd('yearly')">✕</button>
+        </div>
+        <div class="task-list" id="list-yearly"></div>
+        <div class="arch-toggle" id="arch-tog-yearly" onclick="toggleArch('yearly')">
+          <span class="arr">▶</span>&nbsp;Archived&nbsp;<span id="arch-count-yearly">0</span>
+        </div>
+        <div class="arch-list" id="arch-list-yearly"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+// ── FIREBASE SETUP ──
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js';
+import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCqiPAY1v-dWSTUBtPaIts-Nn2BrjMNeh8",
+  authDomain: "todolist-9b4d9.firebaseapp.com",
+  databaseURL: "https://todolist-9b4d9-default-rtdb.firebaseio.com",
+  projectId: "todolist-9b4d9",
+  storageBucket: "todolist-9b4d9.firebasestorage.app",
+  messagingSenderId: "841675261018",
+  appId: "1:841675261018:web:22a8ea8fbf0c44f8744463",
+  measurementId: "G-9JCW6ZPS40"
+};
+
+const app      = initializeApp(firebaseConfig);
+const db       = getDatabase(app);
+const auth     = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+let dbRef = null;
+let unsubscribe = null;
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Signed in — hide overlay, show user info
+    document.getElementById('login-overlay').style.display = 'none';
+    const avatar = document.getElementById('user-avatar');
+    if (user.photoURL) { avatar.src = user.photoURL; avatar.style.display = 'block'; }
+    document.getElementById('signout-btn').style.display = 'block';
+
+    // Point database ref to this user's data
+    dbRef = ref(db, 'users/' + user.uid + '/taskos');
+
+    // Start listening for live changes
+    if (unsubscribe) unsubscribe();
+    unsubscribe = onValue(dbRef, (snapshot) => {
+      const fbData = snapshot.val();
+      if (fbData) {
+        const fresh = defaultState();
+        state = {
+          daily:     mergeFlat(fbData.daily,     fresh.daily),
+          weekly:    mergeWeekly(fbData.weekly,  fresh.weekly),
+          monthly:   mergeFlat(fbData.monthly,   fresh.monthly),
+          quarterly: mergeFlat(fbData.quarterly, fresh.quarterly),
+          yearly:    mergeFlat(fbData.yearly,    fresh.yearly),
+          oneoff:    mergeFlat(fbData.oneoff,    fresh.oneoff),
+        };
+        localStorage.setItem('taskos', JSON.stringify(state));
+        renderAll();
+      } else {
+        // First time user — push defaults to Firebase
+        set(dbRef, state);
+        renderAll();
+      }
+      showStatus('✓ Live', 'ok');
+    }, () => {
+      showStatus('⚠ Offline', 'err');
+    });
+
+  } else {
+    // Signed out — show overlay
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('user-avatar').style.display = 'none';
+    document.getElementById('signout-btn').style.display = 'none';
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  }
+});
+
+// ── SIGN IN / OUT ──
+document.getElementById('login-btn').onclick = () => {
+  signInWithPopup(auth, provider).catch(err => {
+    showStatus('✕ Sign-in failed', 'err');
+    console.error(err);
+  });
+};
+
+function signOut() {
+  fbSignOut(auth);
+}
+window.signOut = signOut;
+
+const ARCHIVABLE = new Set(['monthly','quarterly','yearly','oneoff']);
+const DELETABLE  = new Set(['oneoff']);
+const CK = { daily:'ck-green', weekly:'ck-blue', monthly:'ck-purple', quarterly:'ck-orange', yearly:'ck-red', oneoff:'ck-slate' };
+
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function fmtDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+}
+
+// ── MERGE HELPERS ──
+function mergeFlat(savedArr, freshArr) {
+  const out = savedArr ? [...savedArr] : [];
+  const savedTexts = new Set(out.map(t => t.text.toLowerCase().trim()));
+  for (const ft of freshArr) {
+    if (!savedTexts.has(ft.text.toLowerCase().trim())) out.push(ft);
+  }
+  return out;
+}
+function mergeWeekly(savedArr, freshArr) {
+  const out = savedArr ? savedArr.map(s => ({...s, tasks:[...(s.tasks||[])]})) : [];
+  for (const fSub of freshArr) {
+    const existing = out.find(s => s.name.toLowerCase()===fSub.name.toLowerCase());
+    if (!existing) { out.push({...fSub}); }
+    else {
+      const existingTexts = new Set(existing.tasks.map(t=>t.text.toLowerCase().trim()));
+      for (const ft of fSub.tasks) {
+        if (!existingTexts.has(ft.text.toLowerCase().trim())) existing.tasks.push(ft);
+      }
+    }
+  }
+  return out;
+}
+
+const defaultState = () => ({
+  daily: [
+    {id:uid(),text:'Workout',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'AI',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Charting of Stocks',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Skin Care',completed:false,completedDate:null,archived:false},
+  ],
+  weekly: [
+    {
+      id:uid(), type:'subdivision', name:'House', open:true,
+      tasks:[
+        {id:uid(),text:'Kitchen',completed:false,completedDate:null},
+        {id:uid(),text:'Clean Bathroom',completed:false,completedDate:null},
+        {id:uid(),text:'Clean Room',completed:false,completedDate:null},
+        {id:uid(),text:'Clean Floors',completed:false,completedDate:null},
+      ]
+    },
+    {
+      id:uid(), type:'subdivision', name:'Personal Grooming', open:true,
+      tasks:[
+        {id:uid(),text:'Shaving',completed:false,completedDate:null},
+        {id:uid(),text:'Trimming of Nose and Ears',completed:false,completedDate:null},
+        {id:uid(),text:'Skin Care',completed:false,completedDate:null},
+        {id:uid(),text:'Trim Nails',completed:false,completedDate:null},
+        {id:uid(),text:'Whiten Teeth',completed:false,completedDate:null},
+      ]
+    },
+    {
+      id:uid(), type:'subdivision', name:'Job Search', open:true,
+      tasks:[
+        {id:uid(),text:'Start Applying for Jobs',completed:false,completedDate:null},
+      ]
+    }
+  ],
+  monthly: [
+    {id:uid(),text:'Oil Change / Maintenance — My Car',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:"Oil Change / Maintenance — Mom's Car",completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Hair Appointment',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Car Wash — My Car',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:"Car Wash — Mom's Car",completed:false,completedDate:null,archived:false},
+  ],
+  quarterly: [],
+  yearly: [],
+  oneoff: [
+    {id:uid(),text:'Check if AIS payment for Codo Insurance was charged to checking account (due Mon 3/30)',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Finalize Portfolio',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Open Schwab Business Account',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Review Taxes',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Open Other Business Credit Card Account',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Look Into Statement of Information — Check if Filing Required',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Pick Up Dry Cleaning (Ready Wed 4/2)',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:"Get Details from Mom on Earthquake Policy",completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Organize Computer and Files',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Finalize Week of Travel with Vale',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Ring Design',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Chicago Flights',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Talk to My Boss About My Vacation — May 4th–8th',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Check with Zakdental on the Cost of the Crown',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'FSA Receipts Upload',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Fix HOA Dues',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Patch the Hallway Hole',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:"Check if Plumber Charge Went Through Mom's Credit Card",completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Get AI Certifications',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'AI Trainings',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:"Keep Up with TikTok's AI",completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Pick Up Car from Dealership — Monday 7:45 AM',completed:false,completedDate:null,archived:false},
+    {id:uid(),text:'Get Detailed Receipt for Last Cleaning for FSA',completed:false,completedDate:null,archived:false},
+  ]
+});
+
+let state = (() => {
+  const fresh = defaultState();
+
+  // Try loading from any previous storage key
+  let saved = null;
+  for (const key of ['taskos19','taskos18','taskos17','taskos16','taskos15','taskos14','taskos13','taskos12','taskos11','taskos10','taskos9','taskos8','taskos7','taskos6','taskos5']) {
+    try { const s = localStorage.getItem(key); if (s) { saved = JSON.parse(s); break; } } catch(e){}
+  }
+
+  if (!saved) return fresh;
+
+  // MERGE: for flat arrays (daily, monthly, quarterly, yearly, oneoff)
+  // Keep all saved tasks with their state intact, then append any new tasks
+  // from fresh that don't exist in saved (matched by text)
+  const mergeFlat = (savedArr, freshArr) => {
+    const out = savedArr ? [...savedArr] : [];
+    const savedTexts = new Set(out.map(t => t.text.toLowerCase().trim()));
+    for (const ft of freshArr) {
+      if (!savedTexts.has(ft.text.toLowerCase().trim())) {
+        out.push(ft);
+      }
+    }
+    return out;
+  };
+
+  // MERGE weekly subdivisions: keep saved subdivisions with their task states,
+  // add new subdivisions and new tasks within existing subdivisions
+  const mergeWeekly = (savedArr, freshArr) => {
+    const out = savedArr ? savedArr.map(s => ({...s, tasks: [...(s.tasks||[])]})) : [];
+    for (const fSub of freshArr) {
+      const existing = out.find(s => s.name.toLowerCase() === fSub.name.toLowerCase());
+      if (!existing) {
+        out.push({...fSub});
+      } else {
+        const existingTexts = new Set(existing.tasks.map(t => t.text.toLowerCase().trim()));
+        for (const ft of fSub.tasks) {
+          if (!existingTexts.has(ft.text.toLowerCase().trim())) {
+            existing.tasks.push(ft);
+          }
+        }
+      }
+    }
+    return out;
+  };
+
+  return {
+    daily:     mergeFlat(saved.daily,     fresh.daily),
+    weekly:    mergeWeekly(saved.weekly,  fresh.weekly),
+    monthly:   mergeFlat(saved.monthly,   fresh.monthly),
+    quarterly: mergeFlat(saved.quarterly, fresh.quarterly),
+    yearly:    mergeFlat(saved.yearly,    fresh.yearly),
+    oneoff:    mergeFlat(saved.oneoff,    fresh.oneoff),
+  };
+})();
+
+// Always save to localStorage + Firebase
+function save() {
+  localStorage.setItem('taskos', JSON.stringify(state));
+  if (dbRef) {
+    set(dbRef, state).catch(() => showStatus('⚠ Offline — saved locally', 'err'));
+  }
+}
+
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) +
+    '  ·  ' + n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tick,1000); tick();
+
+function makeEl(type, task, isArch) {
+  const div = document.createElement('div');
+  div.className = 'task-item'+(task.completed?' completed':'')+(isArch?' archived':'');
+
+  // Priority input (oneoff only, visible in edit mode)
+  if (type === 'oneoff' && !isArch) {
+    const pri = document.createElement('input');
+    pri.type = 'number';
+    pri.min = 1;
+    pri.className = 'priority-input';
+    pri.placeholder = '#';
+    pri.value = task.priority != null ? task.priority : '';
+    pri.title = 'Priority';
+    pri.onclick = e => e.stopPropagation();
+    pri.onchange = () => {
+      const v = parseInt(pri.value);
+      task.priority = isNaN(v) ? null : v;
+      save();
+      // re-sort and re-render after a brief delay so input doesn't vanish mid-type
+      setTimeout(() => renderList('oneoff'), 200);
+    };
+    div.appendChild(pri);
+  }
+
+  const chk = document.createElement('div');
+  chk.className = 'chk'+(task.completed?' checked '+CK[type]:'');
+  chk.onclick = () => toggle(type, task.id);
+
+  const txt = document.createElement('div');
+  txt.className = 'task-text';
+  txt.textContent = task.text;
+
+  // Editable name input (oneoff active, visible in edit/priority mode)
+  let nameInput = null;
+  if (type === 'oneoff' && !isArch) {
+    nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'task-name-input';
+    nameInput.value = task.text;
+    nameInput.onclick = e => e.stopPropagation();
+    nameInput.onchange = () => {
+      const v = nameInput.value.trim();
+      if (v) { task.text = v; txt.textContent = v; save(); }
+      else nameInput.value = task.text;
+    };
+    nameInput.onkeydown = e => { if (e.key === 'Enter') nameInput.blur(); };
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'task-meta';
+
+  if (task.completedDate) {
+    const cd = document.createElement('span');
+    cd.className = 'done-date';
+    cd.textContent = fmtDate(task.completedDate);
+    meta.appendChild(cd);
+  }
+
+  // Archived date badge (oneoff only)
+  if (isArch && type === 'oneoff' && task.archivedDate) {
+    const ad = document.createElement('span');
+    ad.className = 'arch-date';
+    ad.textContent = 'archived ' + fmtDate(task.archivedDate);
+    meta.appendChild(ad);
+  }
+
+  const acts = document.createElement('div');
+  acts.className = 'task-actions';
+
+  if (!isArch && ARCHIVABLE.has(type)) {
+    const b = document.createElement('button');
+    b.className='ico arch'; b.title='Archive'; b.textContent='⊞';
+    b.onclick=()=>archive(type,task.id);
+    acts.appendChild(b);
+  }
+  if (isArch || DELETABLE.has(type)) {
+    const b = document.createElement('button');
+    b.className='ico del'; b.title='Delete'; b.textContent='✕';
+    b.onclick=()=>del(type,task.id);
+    acts.appendChild(b);
+  }
+  if (isArch && ARCHIVABLE.has(type)) {
+    const b = document.createElement('button');
+    b.className='ico restore'; b.title='Restore'; b.textContent='↩';
+    b.onclick=()=>restore(type,task.id);
+    acts.appendChild(b);
+  }
+
+  meta.appendChild(acts);
+  div.appendChild(chk);
+  div.appendChild(txt);
+  if (nameInput) div.appendChild(nameInput);
+  div.appendChild(meta);
+
+  // Comment row for archived oneoff tasks
+  if (isArch && type === 'oneoff') {
+    const commentWrap = document.createElement('div');
+    commentWrap.className = 'arch-comment-wrap';
+    const commentInput = document.createElement('textarea');
+    commentInput.className = 'arch-comment-input';
+    commentInput.placeholder = 'Add a note…';
+    commentInput.value = task.comment || '';
+    commentInput.onclick = e => e.stopPropagation();
+    commentInput.onchange = () => {
+      task.comment = commentInput.value.trim();
+      save();
+    };
+    commentWrap.appendChild(commentInput);
+    div.appendChild(commentWrap);
+  }
+
+  return div;
+}
+
+function makeSubEl(subdiv, task) {
+  const div = document.createElement('div');
+  div.className = 'task-item'+(task.completed?' completed':'');
+
+  const chk = document.createElement('div');
+  chk.className = 'chk'+(task.completed?' checked ck-blue':'');
+  chk.onclick = () => toggleSubTask(subdiv.id, task.id);
+
+  const txt = document.createElement('div');
+  txt.className = 'task-text';
+  txt.textContent = task.text;
+
+  const meta = document.createElement('div');
+  meta.className = 'task-meta';
+
+  if (task.completedDate) {
+    const cd = document.createElement('span');
+    cd.className = 'done-date';
+    cd.textContent = fmtDate(task.completedDate);
+    meta.appendChild(cd);
+  }
+
+  const acts = document.createElement('div');
+  acts.className = 'task-actions';
+  const delB = document.createElement('button');
+  delB.className='ico del'; delB.title='Delete'; delB.textContent='✕';
+  delB.onclick=()=>delSubTask(subdiv.id, task.id);
+  acts.appendChild(delB);
+  meta.appendChild(acts);
+
+  div.appendChild(chk); div.appendChild(txt); div.appendChild(meta);
+  return div;
+}
+
+function renderWeekly() {
+  const body = document.getElementById('weekly-body');
+  body.innerHTML = '';
+  let total=0, done=0;
+
+  state.weekly.forEach(subdiv => {
+    total += subdiv.tasks.length;
+    done  += subdiv.tasks.filter(t=>t.completed).length;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'subdivision'+(subdiv.open?' open':'');
+
+    const hdr = document.createElement('div');
+    hdr.className = 'subdiv-header';
+    hdr.onclick = (e) => {
+      if (e.target.closest('.btn-add-sub')) return;
+      subdiv.open = !subdiv.open;
+      save(); renderWeekly();
+    };
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'subdiv-title-row';
+    const arrow = document.createElement('span');
+    arrow.className = 'subdiv-arrow'; arrow.textContent = '▶';
+    const name = document.createElement('span');
+    name.className = 'subdiv-name'; name.textContent = subdiv.name;
+    const cnt = document.createElement('span');
+    cnt.className = 'subdiv-count';
+    cnt.textContent = subdiv.tasks.filter(t=>t.completed).length+'/'+subdiv.tasks.length;
+    titleRow.appendChild(arrow); titleRow.appendChild(name); titleRow.appendChild(cnt);
+
+    const addSubBtn = document.createElement('button');
+    addSubBtn.className = 'btn-add-sub'; addSubBtn.textContent = '+ Add';
+    addSubBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (!subdiv.open) { subdiv.open=true; save(); renderWeekly(); return; }
+      const f = wrap.querySelector('.subdiv-add-form');
+      f.classList.toggle('open');
+      if (f.classList.contains('open')) f.querySelector('input').focus();
+    };
+
+    hdr.appendChild(titleRow); hdr.appendChild(addSubBtn);
+
+    const bdy = document.createElement('div');
+    bdy.className = 'subdiv-body';
+
+    const addForm = document.createElement('div');
+    addForm.className = 'subdiv-add-form';
+    const inp = document.createElement('input');
+    inp.className = 'add-input'; inp.placeholder = 'New subtask…';
+    const doAdd = () => {
+      const t = inp.value.trim();
+      if (t) { subdiv.tasks.push({id:uid(),text:t,completed:false,completedDate:null}); save(); inp.value=''; addForm.classList.remove('open'); renderWeekly(); }
+    };
+    inp.onkeydown = (e) => { if(e.key==='Enter') doAdd(); if(e.key==='Escape'){addForm.classList.remove('open');inp.value='';} };
+    const addOk = document.createElement('button'); addOk.className='btn-ok'; addOk.textContent='ADD'; addOk.onclick=doAdd;
+    const addCancel = document.createElement('button'); addCancel.className='btn-x'; addCancel.textContent='✕';
+    addCancel.onclick=()=>{addForm.classList.remove('open');inp.value='';};
+    addForm.appendChild(inp); addForm.appendChild(addOk); addForm.appendChild(addCancel);
+
+    const tlist = document.createElement('div');
+    tlist.className = 'task-list';
+    if (!subdiv.tasks.length) tlist.innerHTML='<div class="empty">No tasks yet</div>';
+    else subdiv.tasks.forEach(task => tlist.appendChild(makeSubEl(subdiv, task)));
+
+    bdy.appendChild(addForm); bdy.appendChild(tlist);
+    wrap.appendChild(hdr); wrap.appendChild(bdy);
+    body.appendChild(wrap);
+  });
+
+  const ce = document.getElementById('count-weekly');
+  if (ce) ce.textContent = done+'/'+total;
+}
+
+function renderList(type) {
+  const list = document.getElementById('list-'+type);
+  if (!list) return;
+  list.innerHTML = '';
+  let active = state[type].filter(t=>!t.archived);
+
+  // Sort oneoff by priority: numbered tasks first (ascending), then unprioritized
+  if (type === 'oneoff') {
+    active = [...active].sort((a, b) => {
+      const ap = a.priority != null ? a.priority : Infinity;
+      const bp = b.priority != null ? b.priority : Infinity;
+      return ap - bp;
+    });
+  }
+
+  const ce = document.getElementById('count-'+type);
+  if (ce) ce.textContent = active.filter(t=>t.completed).length+'/'+active.length;
+  if (!active.length) list.innerHTML='<div class="empty">No tasks yet</div>';
+  else active.forEach(t=>list.appendChild(makeEl(type,t,false)));
+  if (ARCHIVABLE.has(type)) {
+    const archived = state[type].filter(t=>t.archived);
+    const ac = document.getElementById('arch-count-'+type);
+    if (ac) ac.textContent = archived.length;
+    const al = document.getElementById('arch-list-'+type);
+    if (al) { al.innerHTML=''; archived.forEach(t=>al.appendChild(makeEl(type,t,true))); }
+  }
+}
+
+let priorityMode = false;
+function togglePriorityMode() {
+  priorityMode = !priorityMode;
+  document.body.classList.toggle('priority-mode', priorityMode);
+  const btn = document.getElementById('btn-priority-toggle');
+  if (btn) {
+    btn.textContent = priorityMode ? '✔ Done' : '✎ Edit';
+    btn.classList.toggle('active', priorityMode);
+  }
+  renderList('oneoff');
+}
+
+function renderAll() {
+  ['daily','monthly','quarterly','yearly','oneoff'].forEach(renderList);
+  renderWeekly();
+}
+
+function toggle(type,id) {
+  const t=state[type].find(x=>x.id===id); if(!t) return;
+  t.completed=!t.completed; t.completedDate=t.completed?new Date().toISOString():null;
+  save(); renderList(type);
+}
+function toggleSubTask(subdivId,taskId) {
+  const s=state.weekly.find(x=>x.id===subdivId); if(!s) return;
+  const t=s.tasks.find(x=>x.id===taskId); if(!t) return;
+  t.completed=!t.completed; t.completedDate=t.completed?new Date().toISOString():null;
+  save(); renderWeekly();
+}
+function delSubTask(subdivId,taskId) {
+  const s=state.weekly.find(x=>x.id===subdivId); if(!s) return;
+  s.tasks=s.tasks.filter(x=>x.id!==taskId); save(); renderWeekly();
+}
+function archive(type,id){
+  const t=state[type].find(x=>x.id===id);
+  if(t){ t.archived=true; t.archivedDate=new Date().toISOString(); save(); renderList(type); }
+}
+function restore(type,id){const t=state[type].find(x=>x.id===id);if(t){t.archived=false;t.archivedDate=null;save();renderList(type);}}
+function del(type,id){state[type]=state[type].filter(x=>x.id!==id);save();renderList(type);}
+
+function resetType(type) {
+  state[type].forEach(t=>{ t.completed=false; t.completedDate=null; });
+  save(); renderList(type);
+}
+function resetWeekly() {
+  state.weekly.forEach(s=>s.tasks.forEach(t=>{ t.completed=false; t.completedDate=null; }));
+  save(); renderWeekly();
+}
+
+function addTask(type) {
+  const inp=document.getElementById('input-'+type);
+  const text=inp.value.trim(); if(!text) return;
+  state[type].push({id:uid(),text,completed:false,completedDate:null,archived:false});
+  save(); inp.value=''; closeAdd(type); renderList(type);
+}
+function openAdd(type){document.getElementById('add-'+type).classList.add('open');document.getElementById('input-'+type).focus();}
+function closeAdd(type){document.getElementById('add-'+type).classList.remove('open');document.getElementById('input-'+type).value='';}
+function onKey(e,type){if(e.key==='Enter')addTask(type);if(e.key==='Escape')closeAdd(type);}
+function toggleArch(type){
+  document.getElementById('arch-tog-'+type).classList.toggle('open');
+  document.getElementById('arch-list-'+type).classList.toggle('open');
+}
+
+renderAll();
+
+// ── EXPORT ──
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = 'taskos-backup-' + date + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showStatus('✓ Exported', 'ok');
+}
+
+// ── IMPORT ──
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      // Validate it looks like a taskos state
+      if (!imported.daily || !imported.oneoff) throw new Error('Invalid file');
+      // Merge imported with current defaults to ensure all keys exist
+      state = {
+        daily:     imported.daily     || state.daily,
+        weekly:    imported.weekly    || state.weekly,
+        monthly:   imported.monthly   || state.monthly,
+        quarterly: imported.quarterly || state.quarterly,
+        yearly:    imported.yearly    || state.yearly,
+        oneoff:    imported.oneoff    || state.oneoff,
+      };
+      save();
+      renderAll();
+      showStatus('✓ Imported', 'ok');
+    } catch(err) {
+      showStatus('✕ Invalid file', 'err');
+    }
+  };
+  reader.readAsText(file);
+  // Reset input so same file can be re-imported
+  e.target.value = '';
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('sync-status');
+  el.textContent = msg;
+  el.className = 'sync-status ' + type;
+  setTimeout(() => { el.textContent = ''; el.className = 'sync-status'; }, 3000);
+}
+
+// Expose functions to global scope (required for ES module onclick handlers)
+Object.assign(window, {
+  openAdd, closeAdd, onKey, addTask,
+  toggleArch, togglePriorityMode,
+  resetType, resetWeekly,
+  exportData, importData,
+  toggle, archive, restore, del,
+  toggleSubTask, delSubTask,
+});
+</script>
+</body>
+</html>
